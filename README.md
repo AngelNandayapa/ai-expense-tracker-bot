@@ -22,7 +22,7 @@ A cloud-hosted, automated Telegram bot that leverages AI (Google Gemini 2.5 Flas
 
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/AngelNandayapa/ai-expense-tracker-bot.git](https://github.com/TuUsuario/ai-expense-tracker-bot.git)
+   git clone https://github.com/AngelNandayapa/ai-expense-tracker-bot.git
    cd ai-expense-tracker-bot
 2. Install dependencies:
    pip install -r requirements.txt
