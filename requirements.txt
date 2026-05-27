@@ -1,0 +1,6 @@
+pyTelegramBotAPI
+google-generativeai
+gspread
+oauth2client
+pandas
+python-dotenv
