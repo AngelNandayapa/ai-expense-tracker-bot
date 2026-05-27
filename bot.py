@@ -108,7 +108,7 @@ def procesar_factura(message):
                 })
 
         if not filas_nuevas:
-            bot.edit_message_text("No le entendí al recibo, mándame mensaje para arreglarlo.", chat_id=message.chat.id, message_id=mensaje_estado.message_id)
+            bot.edit_message_text("No le entendí al recibo, intentelo de nuevo o suba uno con el formato correspondiente.", chat_id=message.chat.id, message_id=mensaje_estado.message_id)
             return
 
         bot.edit_message_text("Procesamiento de IA exitoso. Subiendo las cosas a Google Sheets...", chat_id=message.chat.id, message_id=mensaje_estado.message_id)
