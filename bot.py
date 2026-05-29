@@ -20,6 +20,13 @@ bot = telebot.TeleBot(TELEGRAM_TOKEN)
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemini-2.5-flash')
 
+scopes = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
+credenciales = Credentials.from_service_account_file(RUTA_JSON_BOT, scopes=scopes)
+cliente = gspread.authorize(credenciales)
+sheet_nube = cliente.open(NOMBRE_SHEET)
+
+ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp", "application/pdf"}
+MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 
 
 if not os.path.exists("archivos_telegram"):
     os.makedirs("archivos_telegram")
@@ -57,7 +64,20 @@ def enviar_bienvenida(message):
 
 @bot.message_handler(content_types=['photo', 'document'])
 def procesar_factura(message):
+    if message.content_type == 'document':
+        mime = message.document.mime_type or ""
+        size = message.document.file_size or 0
+        if mime not in ALLOWED_MIME_TYPES:
+            bot.reply_to(message, "❌ Tipo de archivo no soportado. Sube una imagen (JPG, PNG, WEBP) o un PDF.")
+            return
+        if size > MAX_FILE_SIZE_BYTES:
+            bot.reply_to(message, "❌ El archivo es demasiado grande. El límite es 10 MB.")
+            return
+
     mensaje_estado = bot.reply_to(message, "Analizando archivo, esto puede tardar un poco...")
+
+    ruta_archivo = None
+    archivo_ia = None
 
     try:
         if message.content_type == 'photo':
@@ -125,11 +145,6 @@ def procesar_factura(message):
         columnas_ordenadas = ['Fecha', 'Día', 'Semana', 'Tipo de Documento', 'Lugar de Compra', 'Artículo', 'Categoría', 'Unidades', 'Gasto Total', 'Mes_Pestaña']
         df_nuevo = df_nuevo.reindex(columns=columnas_ordenadas).fillna("")
 
-        scopes = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-        credenciales = Credentials.from_service_account_file(RUTA_JSON_BOT, scopes=scopes)
-        cliente = gspread.authorize(credenciales)
-        sheet_nube = cliente.open(NOMBRE_SHEET)
-
         for mes, datos_mes in df_nuevo.groupby('Mes_Pestaña'):
             datos_limpios = datos_mes.drop(columns=['Mes_Pestaña'])
             valores_a_insertar = datos_limpios.values.tolist()
@@ -153,5 +168,15 @@ def procesar_factura(message):
 
     except Exception as e:
         bot.edit_message_text(f"❌ Ocurrió un error en el servidor:\n{e}", chat_id=message.chat.id, message_id=mensaje_estado.message_id)
+
+    finally:
+
+        if ruta_archivo and os.path.exists(ruta_archivo):
+            os.remove(ruta_archivo)
+        if archivo_ia:
+            try:
+                genai.delete_file(archivo_ia.name)
+            except Exception:
+                pass  
 
 bot.infinity_polling()
